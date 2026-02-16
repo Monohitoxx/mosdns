@@ -29,6 +29,7 @@ import (
 
 	"github.com/IrineSistiana/mosdns/v5/pkg/dnsutils"
 	"github.com/IrineSistiana/mosdns/v5/pkg/pool"
+	proxyproto "github.com/pires/go-proxyproto"
 	"go.uber.org/zap"
 )
 
@@ -43,6 +44,10 @@ type TCPServerOpts struct {
 
 	// Default is defaultTCPIdleTimeout.
 	IdleTimeout time.Duration
+
+	// If true, accept HAProxy PROXY protocol (v1/v2) on each connection
+	// so that RemoteAddr() returns the real client IP.
+	ProxyProtocol bool
 }
 
 // ServeTCP starts a server at l. It returns if l had an Accept() error.
@@ -59,6 +64,10 @@ func ServeTCP(l net.Listener, h Handler, opts TCPServerOpts) error {
 	firstReadTimeout := tcpFirstReadTimeout
 	if idleTimeout < firstReadTimeout {
 		firstReadTimeout = idleTimeout
+	}
+
+	if opts.ProxyProtocol {
+		l = &proxyproto.Listener{Listener: l}
 	}
 
 	listenerCtx, cancel := context.WithCancelCause(context.Background())

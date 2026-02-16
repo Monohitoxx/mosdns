@@ -41,11 +41,12 @@ func init() {
 }
 
 type Args struct {
-	Entry       string `yaml:"entry"`
-	Listen      string `yaml:"listen"`
-	Cert        string `yaml:"cert"`
-	Key         string `yaml:"key"`
-	IdleTimeout int    `yaml:"idle_timeout"`
+	Entry         string `yaml:"entry"`
+	Listen        string `yaml:"listen"`
+	Cert          string `yaml:"cert"`
+	Key           string `yaml:"key"`
+	IdleTimeout   int    `yaml:"idle_timeout"`
+	ProxyProtocol bool   `yaml:"proxy_protocol"`
 }
 
 func (a *Args) init() {
@@ -98,11 +99,11 @@ func StartServer(bp *coremain.BP, args *Args) (*TcpServer, error) {
 	if tc != nil {
 		l = tls.NewListener(l, tc)
 	}
-	bp.L().Info("tcp server started", zap.Stringer("addr", l.Addr()), zap.Bool("tls", tc != nil))
+	bp.L().Info("tcp server started", zap.Stringer("addr", l.Addr()), zap.Bool("tls", tc != nil), zap.Bool("proxy_protocol", args.ProxyProtocol))
 
 	go func() {
 		defer l.Close()
-		serverOpts := server.TCPServerOpts{Logger: bp.L(), IdleTimeout: time.Duration(args.IdleTimeout) * time.Second}
+		serverOpts := server.TCPServerOpts{Logger: bp.L(), IdleTimeout: time.Duration(args.IdleTimeout) * time.Second, ProxyProtocol: args.ProxyProtocol}
 		err := server.ServeTCP(l, dh, serverOpts)
 		bp.M().GetSafeClose().SendCloseSignal(err)
 	}()
